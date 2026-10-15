@@ -1,188 +1,295 @@
-// ==================== script.js ====================
-// =============================================
-//   LaundryKu - Aplikasi CRUD Local Storage
-// =============================================
-
-// 1. AMBIL ELEMEN DOM
-const formLaundry      = document.getElementById('form-laundry');
-const inputEditId      = document.getElementById('edit-id');
-const inputNama        = document.getElementById('nama-pelanggan');
-const inputBerat       = document.getElementById('berat-kg');
-const inputStatus      = document.getElementById('status-cuci');
-const btnSimpan        = document.getElementById('btn-simpan');
-const judulForm        = document.getElementById('judul-form');
-const wadahPesanan     = document.getElementById('wadah-pesanan');
-
-// Elemen statistik
-const elTotalPesanan   = document.getElementById('total-pesanan');
-const elTotalAntri     = document.getElementById('total-antri');
-const elTotalProses    = document.getElementById('total-proses');
-const elTotalSelesai   = document.getElementById('total-selesai');
-
-// =============================================
-// [READ] 2. AMBIL DATA DARI LOCALSTORAGE
-// =============================================
-// Jika 'datalaundry' di gudang kosong, mulai dengan Array kosong []
-let daftarPesanan = JSON.parse(localStorage.getItem('dataLaundry')) || [];
-
-// =============================================
-// 3. FUNGSI SIMPAN KE LOCALSTORAGE
-// =============================================
-function simpanKeGudang() {
-    localStorage.setItem('dataLaundry', JSON.stringify(daftarPesanan));
+/* =====================================
+   RESET & VARIABEL WARNA
+===================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-// =============================================
-// 4. FUNGSI RENDER (Menggambar Ulang Layar)
-// =============================================
-function renderPesanan() {
-    // Hitung harga: Rp 5.000 per kg
-    const HARGA_PER_KG = 5000;
-    
-    // --- Update Statistik ---
-    elTotalPesanan.textContent = daftarPesanan.length;
-    elTotalAntri.textContent   = daftarPesanan.filter(p => p.status === 'Antri').length;
-    elTotalProses.textContent  = daftarPesanan.filter(p => p.status === 'Proses').length;
-    elTotalSelesai.textContent = daftarPesanan.filter(p => p.status === 'Selesai').length;
-    
-    // --- Kosongkan Wadah ---
-    wadahPesanan.innerHTML = "";
-    
-    // --- Tampilkan Empty State Jika Kosong ---
-    if (daftarPesanan.length === 0) {
-        wadahPesanan.innerHTML = `
-            <div class="empty-state">
-                <p>📭 Belum ada pesanan. Tambahkan pesanan pertama di atas!</p>
-            </div>
-        `;
-        return; // Hentikan fungsi di sini
-    }
-    
-    // --- Perulangan: Cetak Setiap Kartu Pesanan ---
-    for (let i = 0; i < daftarPesanan.length; i++) {
-        let p = daftarPesanan[i];
-        let totalHarga = p.berat * HARGA_PER_KG;
-        let hargaFormatted = totalHarga.toLocaleString('id-ID');
-        
-        wadahPesanan.innerHTML += `
-            <div class="kartu-pesanan">
-                <div class="info-pesanan">
-                    <div class="nama-pelanggan-kartu">${p.nama}</div>
-                    <div class="detail-pesanan">
-                        ⚖️ ${p.berat} kg &nbsp;|&nbsp; 💰 Rp ${hargaFormatted}
-                    </div>
-                </div>
-                <span class="badge-status badge-${p.status}">${p.status}</span>
-                <div class="aksi-pesanan">
-                    <button class="btn btn-edit" onclick="mulaiEdit(${p.id})">✏️ Edit</button>
-                    <button class="btn btn-hapus" onclick="hapusPesanan(${p.id})">🗑️ Hapus</button>
-                </div>
-            </div>
-        `;
+:root {
+    --hitam: #000000;
+    --putih: #ffffff;
+    --hijau-primer: #2A835F;
+    --hijau-terang: #4ade80;
+    --krem: #fffacd;
+    --merah: #ff4757;
+    --biru: #3b82f6;
+    --kuning: #facc15;
+    --abu: #f0f4f8;
+}
+
+body {
+    background-color: #EAF4ED;
+    font-family: 'Courier New', Courier, monospace;
+    min-height: 100vh;
+}
+
+/* =====================================
+   HEADER UTAMA
+===================================== */
+.app-header {
+    background-color: var(--hitam);
+    color: var(--putih);
+    text-align: center;
+    padding: 30px 20px;
+    border-bottom: 4px solid var(--hijau-terang);
+    box-shadow: 0 4px 0 var(--hijau-terang);
+}
+
+.app-header h1 {
+    font-size: 2.5rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+}
+
+.app-header p {
+    color: var(--hijau-terang);
+    font-weight: bold;
+}
+
+/* =====================================
+   LAYOUT UTAMA
+===================================== */
+.app-main {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+/* =====================================
+   KARTU / KOTAK
+===================================== */
+.card {
+    background-color: var(--putih);
+    border: 4px solid var(--hitam);
+    box-shadow: 8px 8px 0px var(--hitam);
+    padding: 25px;
+}
+
+.card h2 {
+    font-size: 1.3rem;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid var(--hitam);
+}
+
+/* =====================================
+   FORM GAYA
+===================================== */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+}
+
+.form-group input,
+.form-group select {
+    padding: 12px;
+    border: 3px solid var(--hitam);
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 1rem;
+    background-color: var(--abu);
+    transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    background-color: var(--krem);
+    box-shadow: 4px 4px 0px var(--hitam);
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+/* =====================================
+   TOMBOL-TOMBOL
+===================================== */
+.btn {
+    padding: 12px 20px;
+    font-family: inherit;
+    font-weight: 900;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    border: 3px solid var(--hitam);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 1px;
+}
+
+.btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0px var(--hitam);
+}
+
+.btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+}
+
+.btn-primary {
+    background-color: var(--hijau-primer);
+    color: var(--putih);
+    box-shadow: 4px 4px 0px var(--hitam);
+    flex: 1;
+}
+
+.btn-secondary {
+    background-color: var(--putih);
+    color: var(--hitam);
+}
+
+.btn-danger-outline {
+    background-color: transparent;
+    color: var(--merah);
+    border-color: var(--merah);
+    font-size: 0.8rem;
+    padding: 8px 14px;
+}
+
+.btn-danger-outline:hover {
+    background-color: var(--merah);
+    color: var(--putih);
+    box-shadow: 3px 3px 0px var(--hitam);
+}
+
+/* =====================================
+   STATISTIK
+===================================== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+@media (min-width: 500px) {
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
     }
 }
 
-// Panggil render pertama kali saat web dibuka
-renderPesanan();
+.stat-card {
+    border: 4px solid var(--hitam);
+    padding: 20px 15px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    transition: transform 0.2s;
+}
 
-// =============================================
-// [CREATE] 5. LOGIKA SAAT FORM DIKIRIM
-// =============================================
-formLaundry.addEventListener('submit', function(event) {
-    event.preventDefault(); // Cegah halaman reload
-    
-    const idYangDiedit = inputEditId.value;
-    
-    // Cek: apakah ini mode EDIT atau mode TAMBAH BARU?
-    if (idYangDiedit !== "") {
-        // --- MODE UPDATE ---
-        // Ubah parseInt agar ID cocok dengan yang tersimpan (number)
-        const idTarget = parseInt(idYangDiedit);
-        
-        // Temukan index pesanan yang ingin diubah
-        const index = daftarPesanan.findIndex(p => p.id === idTarget);
-        
-        // Timpa data pada index tersebut dengan data baru dari form
-        daftarPesanan[index].nama   = inputNama.value;
-        daftarPesanan[index].berat  = parseInt(inputBerat.value);
-        daftarPesanan[index].status = inputStatus.value;
-        
-        batalEdit(); // Kembalikan form ke mode normal
-        
-    } else {
-        // --- MODE CREATE (Tambah Baru) ---
-        let pesananBaru = {
-            id: Date.now(), // Waktu sekarang (milidetik) sebagai ID unik
-            nama: inputNama.value,
-            berat: parseInt(inputBerat.value),
-            status: inputStatus.value
-        };
-        
-        daftarPesanan.push(pesananBaru); // Masukkan ke Array
-        formLaundry.reset(); // Kosongkan form
-    }
-    
-    simpanKeGudang(); // Simpan ke Gudang (Local Storage)
-    renderPesanan();  // Gambar ulang layar
-});
+.stat-card:hover {
+    transform: translate(-2px, -2px);
+}
 
-// =============================================
-// [UPDATE] 6. FUNGSI MULAI MODE EDIT
-// =============================================
-window.mulaiEdit = function(idTarget) {
-    // Temukan data pesanan yang mau diedit berdasarkan ID
-    const pesanan = daftarPesanan.find(p => p.id === idTarget);
-    
-    if (pesanan) {
-        // Isi form dengan data pesanan yang dipilih
-        inputEditId.value   = pesanan.id;
-        inputNama.value     = pesanan.nama;
-        inputBerat.value    = pesanan.berat;
-        inputStatus.value   = pesanan.status;
-        
-        // Ubah tampilan judul dan tombol form
-        judulForm.textContent  = "✏️ Mode Edit Pesanan";
-        btnSimpan.textContent  = "💾 Simpan Perubahan";
-        
-        // Scroll halaman ke atas agar form terlihat
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-};
+.stat-total  { background-color: var(--hitam); color: var(--putih); box-shadow: 5px 5px 0px var(--hijau-terang); }
+.stat-antri  { background-color: var(--krem);  color: var(--hitam); box-shadow: 5px 5px 0px var(--hitam); }
+.stat-proses { background-color: var(--biru);  color: var(--putih); box-shadow: 5px 5px 0px var(--hitam); }
+.stat-selesai{ background-color: var(--hijau-primer); color: var(--putih); box-shadow: 5px 5px 0px var(--hitam); }
 
-// =============================================
-// FUNGSI BATAL EDIT
-// =============================================
-window.batalEdit = function() {
-    // Kembalikan form ke keadaan semula
-    inputEditId.value      = "";
-    formLaundry.reset();
-    judulForm.textContent  = "✏️ Tambah Pesanan Baru";
-    btnSimpan.textContent  = "+ Tambah Pesanan";
-};
+.stat-angka {
+    font-size: 2.5rem;
+    font-weight: 900;
+}
 
-// =============================================
-// [DELETE] 7. FUNGSI HAPUS SATU PESANAN
-// =============================================
-window.hapusPesanan = function(idTarget) {
-    // Konfirmasi sebelum hapus
-    const yakin = confirm("Yakin ingin menghapus pesanan ini?");
-    if (!yakin) return;
-    
-    // Saring Array: biarkan semua KECUALI yang ID-nya sama dengan target
-    daftarPesanan = daftarPesanan.filter(p => p.id !== idTarget);
-    
-    simpanKeGudang();
-    renderPesanan();
-};
+.stat-label {
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
 
-// =============================================
-// [DELETE ALL] 8. FUNGSI HAPUS SEMUA
-// =============================================
-window.hapusSemua = function() {
-    const yakin = confirm("PERINGATAN: Ini akan menghapus SEMUA pesanan! Lanjutkan?");
-    if (!yakin) return;
-    
-    daftarPesanan = []; // Kosongkan array
-    simpanKeGudang();
-    renderPesanan();
-};
+/* =====================================
+   HEADER TABEL & KARTU PESANAN
+===================================== */
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid var(--hitam);
+}
+
+.table-header h2 {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.kartu-pesanan {
+    background-color: var(--abu);
+    border: 3px solid var(--hitam);
+    padding: 15px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    box-shadow: 4px 4px 0px var(--hitam);
+    transition: all 0.2s;
+}
+
+.kartu-pesanan:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px var(--hitam);
+}
+
+.info-pesanan { flex: 1; min-width: 150px; }
+.nama-pelanggan-kartu {
+    font-size: 1.1rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.detail-pesanan {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #555;
+}
+
+.badge-status {
+    padding: 5px 12px;
+    border: 2px solid var(--hitam);
+    font-weight: 900;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.badge-Antri   { background-color: var(--krem);          color: var(--hitam); }
+.badge-Proses  { background-color: var(--biru);           color: var(--putih); }
+.badge-Selesai { background-color: var(--hijau-terang);   color: var(--hitam); }
+
+.aksi-pesanan { display: flex; gap: 8px; }
+.btn-edit   { background-color: var(--kuning); color: var(--hitam); padding: 7px 14px; }
+.btn-hapus  { background-color: var(--merah);  color: var(--putih); padding: 7px 14px; }
+
+/* =====================================
+   EMPTY STATE & LAINNYA
+===================================== */
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+    font-weight: bold;
+    border: 3px dashed #ccc;
+}
